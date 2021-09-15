@@ -9,10 +9,11 @@ But cannot do yet for arc part of the .asy symbol file
 
 ## Usage   
 
-```rotLTSym {dir | filename}
 ```
-the result is in current directory
+rotLTSym {dir | filename}
+```
+the result would be created in current directory
 
 
 ## Wish
-Any developer capable of calculating the rotation of arc which is defined top-left and bottom-right points is demanded to complete finishing this 
+Any developer capable of calculating the rotation of arc defined as top-left and bottom-right points method is demanded to complete the finish 
