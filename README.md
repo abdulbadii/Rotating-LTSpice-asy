@@ -16,4 +16,4 @@ the result would be created in current directory
 
 
 ## Wish
-Any developer capable of calculating the rotation of arc defined as top-left and bottom-right points method is demanded to complete the finish 
+Any developer capable of calculating the rotation of arc defined by top-left and bottom-right points method is needed or expected to complete to the finish 
