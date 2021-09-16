@@ -1,8 +1,8 @@
-rotLTSym(){ ##### BEGINNING OF rotLT #####
-local l
-unset IFS F PR l a x y modP modC mod modW modpt pin pres pfixes res modr;D=${1%/}
+rotLTSym(){ ##### BEGINNING OF rotLTSym #####
+local IFS F PR l a x y modP modC mod modW modpt pin pres pfixes modr;D=${1%/}
 : ${D:=~/Documents/LTspiceXVII/lib/sym}
-if [ -d $D ] ;then pushd $D;n=/*;F=1;PR=~-/; else n=${D%.asy} ;fi
+if [ -d $D ] ;then pushd $D;n=/*;F=1;PR=~-/
+else n=${D%.asy} ;fi
 for fn in $n.asy ;{
 mapfile -t l<"$fn"
 for((i=2;i<${#l[@]};i++)){
@@ -16,7 +16,7 @@ for((i=2;i<${#l[@]};i++)){
 }
 a=($a);for((i=0;i<${#a[@]};i+=2)){	x=(${x[@]} ${a[i]});	y=(${y[@]} ${a[i+1]})
 }
-R=${#x[@]};	IFS=$'\n'
+IFS=$'\n'
 xs=(`sort -n<<<"${x[*]}"`);ys=(`sort -n<<<"${y[*]}"`)
 if((xs[-1]-xs[0]-ys[-1]+ys[0]<0));then Horz=;D=135\ 45
 else Horz=1;D=45\ -45 ;fi
@@ -78,7 +78,7 @@ for D in $D ;{
 		else	((pts[1]+=7));fi
 		l[modW[i]]=${modW[i+1]}${pd[@]}$SD$' \r'
 	}
-	((Horz))||((D-=90))
+	((Horz))||((D-=90)); fn=${fn##*/}
 	for((i=0;i<${#l[@]};i++)){	echo ${l[i]} ;}>$PR${fn%.asy}$D.asy
 };};((F))&&popd
 } ##### ENDING OF rotLT #####
