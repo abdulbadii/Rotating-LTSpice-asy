@@ -44,8 +44,10 @@ for D in $D ;{
 		pts=(${mod[i+2]});	unset md
 		for((j=0;j<${#pts[@]};j+=2)){
 			md=("${md[@]}" $((pts[j]-dx)) $((pts[j+1]-dy)));	}
-		[[ "${mod[i+1]}" == CIR* ]] &&	((${md[0]}==-${md[2]})) && ((${md[1]}==-${md[3]})) &&{
-			l[mod[i]]=${mod[i+1]}${md[@]}$'\r';continue;}
+		[[ "${mod[i+1]}" == CIR* ]] &&{
+			((a=${md[0]}-${md[2]}));((b=${md[1]}-${md[3]}))
+			a=${a#-}; ((FC=!(a-${b#-}))) 
+		}
 		for((r=0;r<$((${#pts[@]}));r+=2)){
 			for((c=0;c<2;c++)){	M=0
 				for((cr=0;cr<2;cr++)){
@@ -56,6 +58,10 @@ for D in $D ;{
 			for((k=0;k<${#pres[@]};k+=2)){
 				[[ "${modpt[@]}" == "${pres[k]} ${pres[k+1]}" ]] &&{	((modr[r]=pfixes[k]));((modr[r+1]=pfixes[k+1]));}
 			}
+		}
+		((FC))&&{	((a/=2)); FC=
+			((cx=(modr[0]+modr[2])/2));((cy=(modr[1]+modr[3])/2))
+			modr=( $((cx-a)) $((cy-a)) $((cx+a)) $((cy+a)) )
 		}
 		l[mod[i]]=${mod[i+1]}${modr[@]}$'\r'
 	}
@@ -75,7 +81,7 @@ for D in $D ;{
 				for((cr=0;cr<2;cr++)){	M=`bc<<<"$M+${p[cr]}*${rotM[cr*2+c]}"`;}
 				printf -v pd[c] %.0f $M
 			}
-		else	((pts[1]+=7));fi
+		else	((pd[1]+=3));fi
 		l[modW[i]]=${modW[i+1]}${pd[@]}$SD$' \r'
 	}
 	((Horz))||((D-=90)); fn=${fn##*/}
