@@ -1,9 +1,10 @@
-rotLTSym(){ ##### BEGINNING OF rotLTSym #####
-local IFS F PR l a x y modP modC mod modW modpt pin pres pfixes modr;D=${1%/}
-: ${D:=~/Documents/LTspiceXVII/lib/sym}
-if [ -d $D ] ;then pushd $D;n=/*;F=1;PR=~-/
-else n=${D%.asy} ;fi
+rotLTSym(){
+D=${1%/};local F PR
+#: ${D:=~/Documents/LTspiceXVII/lib/sym}
+if [ -d "$D" ] ;then pushd $D;n=\*;F=1;PR=~-/
+else	n=${D%.asy};: ${n:=\*};fi
 for fn in $n.asy ;{
+unset	CIR ELP PR l a x y modP modC mod modW modpt pin pres pfixes modr
 mapfile -t l<"$fn"
 for((i=2;i<${#l[@]};i++)){
 	if [[ ${l[i]} =~ ^((LINE|CIRCLE|ARC|RECTANGLE) Normal )(.+)$'\r'$ ]] ;then #<- newline is \r\n, \n was stripped by mapfile
@@ -16,8 +17,7 @@ for((i=2;i<${#l[@]};i++)){
 }
 a=($a);for((i=0;i<${#a[@]};i+=2)){	x=(${x[@]} ${a[i]});	y=(${y[@]} ${a[i+1]})
 }
-IFS=$'\n'
-xs=(`sort -n<<<"${x[*]}"`);ys=(`sort -n<<<"${y[*]}"`)
+IFS=$'\n' xs=(`sort -n<<<"${x[*]}"`);ys=(`sort -n<<<"${y[*]}"`)
 if((xs[-1]-xs[0]-ys[-1]+ys[0]<0));then Horz=;D=135\ 45
 else Horz=1;D=45\ -45 ;fi
 let dx=(xs[0]+xs[-1])/2;let dy=(ys[0]+ys[-1])/2
@@ -44,10 +44,11 @@ for D in $D ;{
 		pts=(${mod[i+2]});	unset md
 		for((j=0;j<${#pts[@]};j+=2)){
 			md=("${md[@]}" $((pts[j]-dx)) $((pts[j+1]-dy)));	}
-		[[ "${mod[i+1]}" == CIR* ]] &&{
+		[[ "${mod[i+1]}" == CI* ]] &&{
 			((a=${md[0]}-${md[2]}));((b=${md[1]}-${md[3]}))
-			a=${a#-}; ((FC=!(a-${b#-}))) 
+			a=${a#-};((ELP=(a-${b#-})));((CIR=!ELP))
 		}
+		((ELP)) || [[ "${mod[i+1]}" == AR* ]] &&{	echo skipping $fn;continue 2;}
 		for((r=0;r<$((${#pts[@]}));r+=2)){
 			for((c=0;c<2;c++)){	M=0
 				for((cr=0;cr<2;cr++)){
@@ -59,7 +60,7 @@ for D in $D ;{
 				[[ "${modpt[@]}" == "${pres[k]} ${pres[k+1]}" ]] &&{	((modr[r]=pfixes[k]));((modr[r+1]=pfixes[k+1]));}
 			}
 		}
-		((FC))&&{	((a/=2)); FC=
+		((CIR))&&{	((a/=2));CIR=
 			((cx=(modr[0]+modr[2])/2));((cy=(modr[1]+modr[3])/2))
 			modr=( $((cx-a)) $((cy-a)) $((cx+a)) $((cy+a)) )
 		}
@@ -87,4 +88,4 @@ for D in $D ;{
 	((Horz))||((D-=90)); fn=${fn##*/}
 	for((i=0;i<${#l[@]};i++)){	echo ${l[i]} ;}>$PR${fn%.asy}$D.asy
 };};((F))&&popd
-} ##### ENDING OF rotLT #####
+}
