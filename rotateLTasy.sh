@@ -1,10 +1,10 @@
 rotLTSym(){
-D=${1%/};local F PR
-#: ${D:=~/Documents/LTspiceXVII/lib/sym}
-if [ -d "$D" ] ;then pushd $D;n=\*;F=1;PR=~-/
-else	n=${D%.asy};: ${n:=\*};fi
+local F PR	#: ${D:=~/Documents/LTspiceXVII/lib/sym}
+D=${1%/};n=\*
+if [ -d "$D" ] ;then pushd $D>/dev/null;F=1;PR=~-/
+elif [ -f "$D" ] ;then n=${D%.asy};fi
 for fn in $n.asy ;{
-unset	CIR ELP PR l a x y modP modC mod modW modpt pin pres pfixes modr
+unset	CIR ELP l a x y modP modC mod modW modpt pin pres pfixes modr
 mapfile -t l<"$fn"
 for((i=2;i<${#l[@]};i++)){
 	if [[ ${l[i]} =~ ^((LINE|CIRCLE|ARC|RECTANGLE) Normal )(.+)$'\r'$ ]] ;then #<- newline is \r\n, \n was stripped by mapfile
@@ -48,7 +48,7 @@ for D in $D ;{
 			((a=${md[0]}-${md[2]}));((b=${md[1]}-${md[3]}))
 			a=${a#-};((ELP=(a-${b#-})));((CIR=!ELP))
 		}
-		((ELP)) || [[ "${mod[i+1]}" == AR* ]] &&{	echo skipping $fn;continue 2;}
+		((ELP)) || [[ "${mod[i+1]}" == AR* ]] &&{	echo skipping $fn due to it has ellipse/arc draw part;continue 2;}
 		for((r=0;r<$((${#pts[@]}));r+=2)){
 			for((c=0;c<2;c++)){	M=0
 				for((cr=0;cr<2;cr++)){
@@ -86,6 +86,9 @@ for D in $D ;{
 		l[modW[i]]=${modW[i+1]}${pd[@]}$SD$' \r'
 	}
 	((Horz))||((D-=90)); fn=${fn##*/}
-	for((i=0;i<${#l[@]};i++)){	echo ${l[i]} ;}>$PR${fn%.asy}$D.asy
+	tn=${fn%.asy}$D.asy
+	echo -n creating $tn
+	for((i=0;i<${#l[@]};i++)){
+		echo ${l[i]};} >$PR$tn &&echo \ ...ok
 };};((F))&&popd
 }
