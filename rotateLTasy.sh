@@ -1,19 +1,19 @@
 rotLTSym(){
-local DR F PR ff fn
+local DR F PR fn
 for i;{
-	if [[ $1 =~ ^(-d=)?([0-9]+)$ ]] ;then	D=${BASH_REMATCH[2]};continue
-	elif [ -d "$i" ] ;then $DR=$DR\ $i
-	elif [ -f "$i" ] ;then
-		if [ ${i:0:1} = / ] ;then ff=$ff\ $i
-		else	fn=$fn\ ${i%.asy} ;fi
-	else echo No regular file \'$i\' exists;return;fi;}
+	[[ $1 =~ ^(-d=)?([0-9]+)$ ]] && (($#>1)) &&{	D=${BASH_REMATCH[2]};continue;}
+	if [ -d "$i" ] ;then	fn=\*
+		if [ "$i" = . ] ;then F=1
+		else $DR="$DR"\ $i ;fi
+	elif [ -f "$i" ] ;then	fn="$fn"\ ${i%.asy} ;F=1;fi
+	elif [ "$i" ] else echo No regular file \'$i\' exists;return;fi
+	else echo For usage explanation, read on;fi;}
 
-: ${DR:=.}
-
-for DR in $DR ;{
-for fn in $n.asy ;{
+for DR in $F $DR ;{
+((F)) || pushd "$DR">/dev/null
+for fn in $fn ;{
 unset	Horz D CIR ELP l a x y modP modC mod modW modpt pin pres pfixes modr
-mapfile -t l<"$fn"
+mapfile -t l<"$fn.asy"
 for((i=2;i<${#l[@]};i++)){
 	if [[ ${l[i]} =~ ^((LINE|CIRCLE|ARC|RECTANGLE) Normal )(.+)$'\r'$ ]] ;then #<- newline is \r\n, \n was stripped by mapfile
 		mod=("${mod[@]}" $i "${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}")
@@ -102,5 +102,6 @@ for D in $D ;{
 	((Horz))||((D-=90)); fn=${fn##*/}
 	tn=${fn%.asy}$D.asy;echo -n creating $tn...
 	for((i=0;i<${#l[@]};i++)){	echo ${l[i]};} >$PR$tn &&echo ok
-};};((F))&&popd
+};}
+((F))||popd;}
 }
