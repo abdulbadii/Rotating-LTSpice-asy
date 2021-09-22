@@ -1,19 +1,18 @@
 rotLTSym(){
-local DR F PR fn
+local D=45 DR F fn PR
 for i;{
 	[[ $1 =~ ^(-d=)?([0-9]+)$ ]] && (($#>1)) &&{	D=${BASH_REMATCH[2]};continue;}
-	if [ -d "$i" ] ;then	fn=\*
+	if [ -d "$i" ] ;then	fn=\*.asy
 		if [ "$i" = . ] ;then F=1
-		else $DR="$DR"\ $i ;fi
-	elif [ -f "$i" ] ;then	fn="$fn"\ ${i%.asy} ;F=1;fi
-	elif [ "$i" ] else echo No regular file \'$i\' exists;return;fi
-	else echo For usage explanation, read on;fi;}
-
+		else DR="$DR"\ $i ;fi
+	elif [ -f "$i" ] ;then	fn="$fn"\ ${i%.asy}.asy ;F=1
+	elif [ "$i" ] ;then echo No regular file \'$i\' exists;return
+	else echo For usage explanation, read on;return;fi;}
 for DR in $F $DR ;{
-((F)) || pushd "$DR">/dev/null
+((F)) ||{ cd "$DR">/dev/null; PR=~-/;}
 for fn in $fn ;{
-unset	Horz D CIR ELP l a x y modP modC mod modW modpt pin pres pfixes modr
-mapfile -t l<"$fn.asy"
+unset	Horz L CIR ELP l a xr yr modP modC mod modW modpt pin pres pfixes modr
+mapfile -t l<"$fn"
 for((i=2;i<${#l[@]};i++)){
 	if [[ ${l[i]} =~ ^((LINE|CIRCLE|ARC|RECTANGLE) Normal )(.+)$'\r'$ ]] ;then #<- newline is \r\n, \n was stripped by mapfile
 		mod=("${mod[@]}" $i "${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}")
@@ -23,24 +22,22 @@ for((i=2;i<${#l[@]};i++)){
 	elif [[ ${l[i]} =~ ^(WINDOW [0-9]+ )([-0-9]+ [-0-9]+)(.+)$'\r'$ ]] ;then
 		modW=("${modW[@]}" $i "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}");fi
 }
-a=($a);for((i=0;i<${#a[@]};i+=2)){	x=(${x[@]} ${a[i]});	y=(${y[@]} ${a[i+1]})
+a=($a);for((i=0;i<${#a[@]};i+=2)){
+	xr=(${xr[@]} ${a[i]});	yr=(${yr[@]} ${a[i+1]})
 }
-IFS=$'\n' xs=(`sort -n<<<"${x[*]}"`);ys=(`sort -n<<<"${y[*]}"`)
-
-#D=${2:-45}echo ${@: -1}return
-if((xs[-1]-xs[0]-ys[-1]+ys[0]>=0))	;then	Horz=1
-	D=$D\ -$D; ((xs[-1]+xs[0]<0)) &&{	D=$((D-180))\ $((-D-180));}
+IFS=$'\n' x=(`sort -n<<<"${xr[*]}"`);y=(`sort -n<<<"${yr[*]}"`)
+if((x[-1]-x[0]-y[-1]+y[0]>0))	;then	Horz=1
+	DG=$D\ -$D; ((x[-1]+x[0]<0)) &&{	DG=$((D-180))\ $((-D-180)); L=180;}
 else
-	D=$((D+90))\ $((-D+90))
-	((ys[-1]+ys[0]<0)) &&{	D=$((D-90))\ $((-D-90));}
+	DG=$((a=D+90))\ $((b=-D+90)); L=-90
+	((y[-1]+y[0]<0)) &&{	DG=-$b\ -$a; L=90;}
 fi
-let dx=(xs[0]+xs[-1])/2;let dy=(ys[0]+ys[-1])/2
+let dx=(x[0]+x[-1])/2;let dy=(y[0]+y[-1])/2
 unset IFS
-for D in $D ;{
+for D in $DG ;{
+	((K=L+D))
 	d=`bc -l<<<"$D/180*3.1415926535897932384626434"`
-	cos=`bc -l<<<"c($d)"`
-	sin=`bc -l<<<"s($d)"`
-	minsin=`bc -l<<<"-1*$sin"`
+	cos=`bc -l<<<"c($d)"`;	sin=`bc -l<<<"s($d)"`;	minsin=`bc -l<<<"-1*$sin"`
 	rotM=($cos $minsin $sin $cos)
 	for((i=0;i<${#modP[@]};i+=4)){
 		p=(${modP[i+2]})
@@ -62,7 +59,7 @@ for D in $D ;{
 			((a=${md[0]}-${md[2]}));((b=${md[1]}-${md[3]}))
 			a=${a#-};((ELP=(a-${b#-})));((CIR=!ELP))
 		}
-		((ELP)) || [[ "${mod[i+1]}" == AR* ]] &&{	echo skipping $fn due to it has ellipse/arc draw part;continue 2;}
+		((ELP)) || [[ "${mod[i+1]}" == AR* ]] &&{	echo skipping $fn as it has ellipse/arc draw part;continue 2;}
 		for((r=0;r<$((${#pts[@]}));r+=2)){
 			for((c=0;c<2;c++)){	M=0
 				for((cr=0;cr<2;cr++)){
@@ -84,24 +81,26 @@ for D in $D ;{
 		pd=(${modW[i+2]})
 		pd=($((pd[0]-dx)) $((pd[1]-dy)))
 		SD=${modW[i+3]}
-		if [[ "${modW[i+1]}" = *0\  ]] ;then	((pd[1]-=5))
-			if((Horz))&&((D==-45))||(((!Horz))&&((D==45))) ;then
-				((pd[0]=pres[0]<pres[2]?pres[0]+5:pres[2]+5))
-			else
-				((pd[0]=pres[0]>pres[2]?pres[0]-3:pres[2]-3))
-				SD=Right${SD/Left};	fi
+		if [[ "${modW[i+1]}" = *0\  ]];then	((pd[1]-=5))
+			if(((K==45))) ;then
+				((pd[0]=pfixes[0]>pfixes[2]?pfixes[0]-8:pfixes[2]-8))
+				SD=Right${SD/Left}
+			else		((pd[0]=pfixes[0]<pfixes[2]?pfixes[0]+11:pfixes[2]+11))	;fi
 		elif [[ "${modW[i+1]}" = *162\  ]] ;then
 			p=(${pd[@]})
 			for((c=0;c<2;c++)){	M=0
 				for((cr=0;cr<2;cr++)){	M=`bc<<<"$M+${p[cr]}*${rotM[cr*2+c]}"`;}
 				printf -v pd[c] %.0f $M
 			}
-		else	((pd[1]+=3));fi
+		else	((pd[1]+=7))
+			if((K==45)) ;then ((pd[0]-=27))
+			else
+				((pd[0]=pfixes[0]<pfixes[2]?pfixes[0]-7:pfixes[2]-7));fi
+		fi
 		l[modW[i]]=${modW[i+1]}${pd[@]}$SD$' \r'
 	}
-	((Horz))||((D-=90)); fn=${fn##*/}
-	tn=${fn%.asy}$D.asy;echo -n creating $tn...
-	for((i=0;i<${#l[@]};i++)){	echo ${l[i]};} >$PR$tn &&echo ok
+	fn=${fn##*/};tn=${fn%.asy}$K.asy;echo -n creating $tn...
+	for((i=0;i<${#l[@]};i++)){	echo ${l[i]};} >$PR$tn &&echo \ ok
 };}
-((F))||popd;}
-}
+((F))||cd -;F=
+};}
