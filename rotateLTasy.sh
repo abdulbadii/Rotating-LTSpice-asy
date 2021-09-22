@@ -1,9 +1,18 @@
-rotLTSym(){ ##### BEGINNING OF rotLTSym #####
-local IFS F PR l a x y modP modC mod modW modpt pin pres pfixes modr;D=${1%/}
-: ${D:=~/Documents/LTspiceXVII/lib/sym}
-if [ -d $D ] ;then pushd $D;n=/*;F=1;PR=~-/
-else n=${D%.asy} ;fi
+rotLTSym(){
+local DR F PR ff fn
+for i;{
+	if [[ $1 =~ ^(-d=)?([0-9]+)$ ]] ;then	D=${BASH_REMATCH[2]};continue
+	elif [ -d "$i" ] ;then $DR=$DR\ $i
+	elif [ -f "$i" ] ;then
+		if [ ${i:0:1} = / ] ;then ff=$ff\ $i
+		else	fn=$fn\ ${i%.asy} ;fi
+	else echo No regular file \'$i\' exists;return;fi;}
+
+: ${DR:=.}
+
+for DR in $DR ;{
 for fn in $n.asy ;{
+unset	Horz D CIR ELP l a x y modP modC mod modW modpt pin pres pfixes modr
 mapfile -t l<"$fn"
 for((i=2;i<${#l[@]};i++)){
 	if [[ ${l[i]} =~ ^((LINE|CIRCLE|ARC|RECTANGLE) Normal )(.+)$'\r'$ ]] ;then #<- newline is \r\n, \n was stripped by mapfile
@@ -16,10 +25,15 @@ for((i=2;i<${#l[@]};i++)){
 }
 a=($a);for((i=0;i<${#a[@]};i+=2)){	x=(${x[@]} ${a[i]});	y=(${y[@]} ${a[i+1]})
 }
-IFS=$'\n'
-xs=(`sort -n<<<"${x[*]}"`);ys=(`sort -n<<<"${y[*]}"`)
-if((xs[-1]-xs[0]-ys[-1]+ys[0]<0));then Horz=;D=135\ 45
-else Horz=1;D=45\ -45 ;fi
+IFS=$'\n' xs=(`sort -n<<<"${x[*]}"`);ys=(`sort -n<<<"${y[*]}"`)
+
+#D=${2:-45}echo ${@: -1}return
+if((xs[-1]-xs[0]-ys[-1]+ys[0]>=0))	;then	Horz=1
+	D=$D\ -$D; ((xs[-1]+xs[0]<0)) &&{	D=$((D-180))\ $((-D-180));}
+else
+	D=$((D+90))\ $((-D+90))
+	((ys[-1]+ys[0]<0)) &&{	D=$((D-90))\ $((-D-90));}
+fi
 let dx=(xs[0]+xs[-1])/2;let dy=(ys[0]+ys[-1])/2
 unset IFS
 for D in $D ;{
@@ -44,8 +58,11 @@ for D in $D ;{
 		pts=(${mod[i+2]});	unset md
 		for((j=0;j<${#pts[@]};j+=2)){
 			md=("${md[@]}" $((pts[j]-dx)) $((pts[j+1]-dy)));	}
-		[[ "${mod[i+1]}" == CIR* ]] &&	((${md[0]}==-${md[2]})) && ((${md[1]}==-${md[3]})) &&{
-			l[mod[i]]=${mod[i+1]}${md[@]}$'\r';continue;}
+		[[ "${mod[i+1]}" == CI* ]] &&{
+			((a=${md[0]}-${md[2]}));((b=${md[1]}-${md[3]}))
+			a=${a#-};((ELP=(a-${b#-})));((CIR=!ELP))
+		}
+		((ELP)) || [[ "${mod[i+1]}" == AR* ]] &&{	echo skipping $fn due to it has ellipse/arc draw part;continue 2;}
 		for((r=0;r<$((${#pts[@]}));r+=2)){
 			for((c=0;c<2;c++)){	M=0
 				for((cr=0;cr<2;cr++)){
@@ -56,6 +73,10 @@ for D in $D ;{
 			for((k=0;k<${#pres[@]};k+=2)){
 				[[ "${modpt[@]}" == "${pres[k]} ${pres[k+1]}" ]] &&{	((modr[r]=pfixes[k]));((modr[r+1]=pfixes[k+1]));}
 			}
+		}
+		((CIR))&&{	((a/=2));CIR=
+			((cx=(modr[0]+modr[2])/2));((cy=(modr[1]+modr[3])/2))
+			modr=( $((cx-a)) $((cy-a)) $((cx+a)) $((cy+a)) )
 		}
 		l[mod[i]]=${mod[i+1]}${modr[@]}$'\r'
 	}
@@ -75,10 +96,11 @@ for D in $D ;{
 				for((cr=0;cr<2;cr++)){	M=`bc<<<"$M+${p[cr]}*${rotM[cr*2+c]}"`;}
 				printf -v pd[c] %.0f $M
 			}
-		else	((pts[1]+=7));fi
+		else	((pd[1]+=3));fi
 		l[modW[i]]=${modW[i+1]}${pd[@]}$SD$' \r'
 	}
 	((Horz))||((D-=90)); fn=${fn##*/}
-	for((i=0;i<${#l[@]};i++)){	echo ${l[i]} ;}>$PR${fn%.asy}$D.asy
+	tn=${fn%.asy}$D.asy;echo -n creating $tn...
+	for((i=0;i<${#l[@]};i++)){	echo ${l[i]};} >$PR$tn &&echo ok
 };};((F))&&popd
-} ##### ENDING OF rotLT #####
+}
