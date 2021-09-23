@@ -1,7 +1,8 @@
 rotLTSym(){
-local D=45 DR F fn PR
+local D=45 DR F PR
+[[ $1 =~ ^(-d=)?(-?[0-9]+)$ ]] &&(($#>1))&&{	D=${BASH_REMATCH[2]}
+	[ ${D:0:1} = - ]&&{ echo Degree \'$D\' cannot be negative;return;};shift;}
 for i;{
-	[[ $1 =~ ^(-d=)?([0-9]+)$ ]] && (($#>1)) &&{	D=${BASH_REMATCH[2]};continue;}
 	if [ -d "$i" ] ;then	fn=\*.asy
 		if [ "$i" = . ] ;then F=1
 		else DR="$DR"\ $i ;fi
@@ -27,16 +28,18 @@ a=($a);for((i=0;i<${#a[@]};i+=2)){
 }
 IFS=$'\n' x=(`sort -n<<<"${xr[*]}"`);y=(`sort -n<<<"${yr[*]}"`)
 if((x[-1]-x[0]-y[-1]+y[0]>0))	;then	Horz=1
-	DG=$D\ -$D; ((x[-1]+x[0]<0)) &&{	DG=$((D-180))\ $((-D-180)); L=180;}
+	((DG=((t=x[-1]+x[0]>0))? D: ((D-((L=180))))))
+	((D%90)) && DG=$DG\ -$((t? D: ((D+180))))
 else
-	DG=$((a=D+90))\ $((b=-D+90)); L=-90
-	((y[-1]+y[0]<0)) &&{	DG=-$b\ -$a; L=90;}
+	L=-90;((a=D+90))
+	((DG=((t=y[-1]+y[0]>0))? a: ((D-((L=90))))))
+	((D%90)) && DG=$DG\ $((t? ((-D+90)): -a))
 fi
 let dx=(x[0]+x[-1])/2;let dy=(y[0]+y[-1])/2
 unset IFS
-for D in $DG ;{
-	((K=L+D))
-	d=`bc -l<<<"$D/180*3.1415926535897932384626434"`
+for d in $DG ;{
+	((K=L+d))
+	d=`bc -l<<<"$d/180*3.1415926535897932384626434"`
 	cos=`bc -l<<<"c($d)"`;	sin=`bc -l<<<"s($d)"`;	minsin=`bc -l<<<"-1*$sin"`
 	rotM=($cos $minsin $sin $cos)
 	for((i=0;i<${#modP[@]};i+=4)){
@@ -93,9 +96,9 @@ for D in $DG ;{
 				printf -v pd[c] %.0f $M
 			}
 		else	((pd[1]+=7))
-			if((K==45)) ;then ((pd[0]-=27))
+			if((K==45)) ;then ((pd[0]-=31))
 			else
-				((pd[0]=pfixes[0]<pfixes[2]?pfixes[0]-7:pfixes[2]-7));fi
+				((pd[0]=pfixes[0]<pfixes[2]?pfixes[0]:pfixes[2]));fi
 		fi
 		l[modW[i]]=${modW[i+1]}${pd[@]}$SD$' \r'
 	}
