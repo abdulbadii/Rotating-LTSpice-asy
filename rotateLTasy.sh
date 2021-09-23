@@ -39,9 +39,7 @@ let dx=(x[0]+x[-1])/2;let dy=(y[0]+y[-1])/2
 unset IFS
 for d in $DG ;{
 	((K=L+d))
-	d=`bc -l<<<"$d/180*3.1415926535897932384626434"`
-	cos=`bc -l<<<"c($d)"`;	sin=`bc -l<<<"s($d)"`;	minsin=`bc -l<<<"-1*$sin"`
-	rotM=($cos $minsin $sin $cos)
+	rotM=(`bc -l<<<"d=$d/180*3.1415926535897932384626434; print co=c(d),\" \";si=s(d);-si;si;co"`)
 	for((i=0;i<${#modP[@]};i+=4)){
 		p=(${modP[i+2]})
 		pd=($((p[0]-dx)) $((p[1]-dy)))
