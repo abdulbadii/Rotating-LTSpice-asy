@@ -1,16 +1,16 @@
 rotLTSym(){
-local D=45 DR F PR
-[[ $1 =~ ^(-d=)?(-?[0-9]+)$ ]] &&(($#>1))&&{	D=${BASH_REMATCH[2]}
+local D=45 fn DR F PR
+[[ $1 =~ ^(-d=)?(-?[0-9.]+)$ ]] &&(($#>1))&&{	D=${BASH_REMATCH[2]}
 	[ ${D:0:1} = - ]&&{ echo Degree \'$D\' cannot be negative;return;};shift;}
-for i;{
-	if [ -d "$i" ] ;then	fn=\*.asy
-		if [ "$i" = . ] ;then F=1
-		else DR="$DR"\ $i ;fi
-	elif [ -f "$i" ] ;then	fn="$fn"\ ${i%.asy}.asy ;F=1
-	elif [ "$i" ] ;then echo No regular file \'$i\' exists;return
+for a;{
+	if [ -d "$a" ] ;then	fn=\*.asy
+		if [ "$a" = . ] ;then F=1
+		else DR="$DR"\ $a ;fi
+	elif [ -f "$a" ] ;then	fn="$fn"\ ${a%.asy}.asy ;F=1
+	elif [ "$a" ] ;then echo No regular file \'$i\' exists;return
 	else echo For usage explanation, read on;return;fi;}
 for DR in $F $DR ;{
-((F)) ||{ cd "$DR">/dev/null; PR=~-/;}
+((F)) ||{ cd "$DR">/dev/null;PR=~-/;}
 for fn in $fn ;{
 unset	Horz L CIR ELP l a xr yr modP modC mod modW modpt pin pres pfixes modr
 mapfile -t l<"$fn"
@@ -28,17 +28,18 @@ a=($a);for((i=0;i<${#a[@]};i+=2)){
 }
 IFS=$'\n' x=(`sort -n<<<"${xr[*]}"`);y=(`sort -n<<<"${yr[*]}"`)
 if((x[-1]-x[0]-y[-1]+y[0]>0))	;then	Horz=1
-	((DG=((t=x[-1]+x[0]>0))? D: ((D-((L=180))))))
-	((D%90)) && DG=$DG\ -$((t? D: ((D+180))))
+	if((t=x[-1]+x[0]>0)) ;then DG=$D; else DG=`bc -l<<<"$D-180"`;L=180;fi
+	((${D%.*}%90)) &&{
+		if((t)) ;then DG=$DG\ `bc -l<<<"-$D"`; else DG=$DG\ `bc -l<<<"-$D-180"`;fi;}
 else
-	L=-90;((a=D+90))
-	((DG=((t=y[-1]+y[0]>0))? a: ((D-((L=90))))))
-	((D%90)) && DG=$DG\ $((t? ((-D+90)): -a))
+	if((t=y[-1]+y[0]>0)) ;then DG=`bc -l<<<"$D+90"`;L=-90; else DG=`bc -l<<<"$D-90"`;L=90;fi
+	((${D%.*}%90)) &&{
+		if((t)) ;then DG=$DG\ `bc -l<<<"-$D+90"`; else DG=$DG\ `bc -l<<<"-$D-90"`;fi;}
 fi
 let dx=(x[0]+x[-1])/2;let dy=(y[0]+y[-1])/2
 unset IFS
 for d in $DG ;{
-	((K=L+d))
+	K=`bc -l<<<"$L+$d"`
 	rotM=(`bc -l<<<"d=$d/180*3.1415926535897932384626434; print co=c(d),\" \";si=s(d);-si;si;co"`)
 	for((i=0;i<${#modP[@]};i+=4)){
 		p=(${modP[i+2]})
@@ -83,7 +84,7 @@ for d in $DG ;{
 		pd=($((pd[0]-dx)) $((pd[1]-dy)))
 		SD=${modW[i+3]}
 		if [[ "${modW[i+1]}" = *0\  ]];then	((pd[1]-=5))
-			if(((K==45))) ;then
+			if((${K%.*}==45)) ;then
 				((pd[0]=pfixes[0]>pfixes[2]?pfixes[0]-8:pfixes[2]-8))
 				SD=Right${SD/Left}
 			else		((pd[0]=pfixes[0]<pfixes[2]?pfixes[0]+11:pfixes[2]+11))	;fi
@@ -94,7 +95,7 @@ for d in $DG ;{
 				printf -v pd[c] %.0f $M
 			}
 		else	((pd[1]+=7))
-			if((K==45)) ;then ((pd[0]-=31))
+			if((${K%.*}==45)) ;then ((pd[0]=-7))
 			else
 				((pd[0]=pfixes[0]<pfixes[2]?pfixes[0]:pfixes[2]));fi
 		fi
